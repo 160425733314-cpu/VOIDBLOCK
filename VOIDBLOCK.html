@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VOIDBLOCK</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{--warm:#fff1e0;--dim:#f3c9b0;--ink:#2a0707;--panel:rgba(38,6,6,.78);--line:rgba(255,214,180,.35);--hot:#ffb347;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;color:var(--warm);font:500 15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;
+ background:radial-gradient(ellipse at 50% 38%,#c0281c 0%,#8f1511 42%,#4b0808 100%)}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.px{font-family:"Press Start 2P",ui-monospace,monospace;letter-spacing:.04em}
+#bar{position:fixed;left:0;right:0;top:calc(10px + env(safe-area-inset-top,0px));display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:0 12px;pointer-events:none}
+#bar>*{pointer-events:auto}#bar[hidden]{display:none}
+#stats{display:flex;gap:18px;font-size:12px;text-shadow:0 2px 0 rgba(40,0,0,.6)}#stats b{font-size:15px;color:#fff}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:700;background:var(--hot);color:var(--ink);border:2px solid #7a3a0a;border-radius:6px;padding:11px 20px;cursor:pointer}
+.btn.alt{background:var(--panel);color:var(--warm);border-color:var(--line)}.btn.sm{padding:7px 12px;font-size:13px}
+.btn:hover{filter:brightness(1.1)}.btn:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+#gates{position:fixed;right:12px;top:calc(62px + env(safe-area-inset-top,0px));width:min(290px,calc(100vw - 24px));background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+#gates[hidden]{display:none}#gates h3{margin:0 0 8px;font-size:11px}
+.grow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.dim{color:var(--dim);font-size:13px}#gates p{margin:6px 0}
+#tip{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:min(520px,92vw);text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:14px;opacity:0;transition:opacity .4s;pointer-events:none}
+#tip.on{opacity:1}
+#toast{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--hot);color:var(--ink);font-weight:800;font-size:13px;padding:7px 14px;border-radius:6px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1}
+#lbl{position:fixed;left:0;right:0;top:calc(110px + env(safe-area-inset-top,0px));text-align:center;font-size:clamp(16px,4vw,26px);color:#fff;text-shadow:0 3px 0 #5a0c0a;opacity:0;pointer-events:none}
+#lbl small{display:block;font:600 13px system-ui;letter-spacing:0;margin-top:8px;color:var(--dim)}
+#lbl.go{animation:lb 1.5s ease-out}@keyframes lb{0%{opacity:0;transform:translateY(8px)}18%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
+.ov{position:fixed;inset:0;display:grid;place-items:center;background:rgba(40,4,4,.72);padding:16px}.ov[hidden]{display:none}
+.card{width:min(440px,100%);text-align:center;padding:26px;background:#3a0b0a;border:2px solid var(--line);border-radius:12px;box-shadow:0 12px 0 rgba(0,0,0,.25)}
+.card h1{margin:0 0 14px;font-size:clamp(26px,8vw,40px);color:#fff;text-shadow:0 4px 0 #8a2a10,0 0 22px rgba(255,160,90,.5)}
+.card h2{margin:0 0 10px;font-size:16px;line-height:1.5;color:#fff}.card p{margin:0 0 14px;color:var(--dim)}
+.card .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.card label{display:block;margin:0 0 14px;font-size:14px}.card input{width:70px;font:inherit;font-weight:700;text-align:center;padding:6px;border-radius:6px;border:2px solid var(--line);background:#240505;color:var(--warm)}
+.keys{font-size:13px;margin:0 0 14px;color:var(--dim)}
+#pad{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:none;grid-template:repeat(2,58px)/repeat(3,58px);gap:6px}
+#pad button{font-size:22px;border-radius:10px;border:2px solid var(--line);background:var(--panel);color:var(--warm);touch-action:manipulation}#pad .u{grid-column:2}
+@media (pointer:coarse){#pad.on{display:grid}#tip{bottom:calc(140px + env(safe-area-inset-bottom,0px))}}
+</style></head><body>
+<div id="bar" hidden>
+  <div id="stats" class="px"><span>STAGE <b id="stg">1</b></span><span>MOVES <b id="mv">0</b></span></div>
+  <div class="btns"><button class="btn alt sm" id="bG" aria-expanded="false">Gates (G)</button><button class="btn alt sm" id="bR">Restart (R)</button><button class="btn alt sm" id="bP">Pause (Esc)</button></div>
+</div>
+<div id="gates" hidden><h3 class="px">GATES</h3><div id="gList"></div>
+  <p class="dim" style="border-top:1px solid var(--line);padding-top:8px">▨ Bridge: copper slats slide into place.<br>▥ Barrier: striped block, blocks you until opened.<br>◉ Round plate opens once. ✕ Cross plate toggles.</p>
+  <button class="btn alt sm" id="bGx">Close</button></div>
+<div id="lbl" class="px"></div><div id="toast" role="status"></div><div id="tip"></div>
+<div id="pad"><button class="u" data-d="3" aria-label="Up">▲</button><button data-d="1" aria-label="Left" style="grid-row:2">◀</button><button data-d="2" aria-label="Down" style="grid-row:2">▼</button><button data-d="0" aria-label="Right" style="grid-row:2">▶</button></div>
+
+<div class="ov" id="ovStart"><div class="card"><h1 class="px t">VOIDBLOCK</h1>
+  <p>Tip the stone block across floating tiles. Stand it upright on the dark square hole to finish each stage. Step off an edge and you fall into the void. Stages never end.</p>
+  <p class="keys">Arrow keys or WASD to roll · R restart · Esc pause · G gates</p>
+  <label>Start at stage <input id="stIn" type="number" min="1" max="999" value="1"></label>
+  <button class="btn" id="bPlay">Play</button></div></div>
+<div class="ov" id="ovFell" hidden><div class="card"><h2 class="px">FELL INTO THE VOID</h2><p>Every cell under the block needs floor. Lying flat uses two.</p><div class="row"><button class="btn" id="bRetry">Retry</button><button class="btn alt" id="bS1">Restart from Stage 1</button></div></div></div>
+<div class="ov" id="ovWin" hidden><div class="card"><h2 class="px" id="winT">STAGE COMPLETE</h2><p id="winP"></p><div class="row"><button class="btn" id="bNext">Next Stage</button><button class="btn alt" id="bRep">Replay Stage</button></div></div></div>
+<div class="ov" id="ovPause" hidden><div class="card"><h2 class="px">PAUSED</h2><div class="row"><button class="btn" id="bRes">Resume</button><button class="btn alt" id="bRs">Restart</button></div></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+const TITLE = 'VOIDBLOCK';                              // rename here; the start screen uses it too
+document.title = TITLE; document.querySelectorAll('.t').forEach(e => e.textContent = TITLE);
+/* ===== LOGIC: grid model, gates, solver, level generator (no graphics) ===== */
+const DIM = [[1,2,1],[2,1,1],[1,1,2]];                 // [width x, height, depth z] per orientation
+const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];              // 0:+x 1:-x 2:+z 3:-z
+const cellsOf = s => s.o===0 ? [[s.x,s.z]] : s.o===1 ? [[s.x,s.z],[s.x+1,s.z]] : [[s.x,s.z],[s.x,s.z+1]];
+function rolled(s, d) {                                // state after tipping one step; o: 0 upright, 1 flat along X, 2 flat along Z
+  const {x,z,o} = s;
+  const t = o===0 ? [[x+1,z,1],[x-2,z,1],[x,z+1,2],[x,z-2,2]]
+          : o===1 ? [[x+2,z,0],[x-1,z,0],[x,z+1,1],[x,z-1,1]]
+                  : [[x+1,z,2],[x-1,z,2],[x,z+2,0],[x,z-1,0]];
+  return {x:t[d][0], z:t[d][1], o:t[d][2]};
+}
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a>>>15, 1|a); t = t + Math.imul(t ^ t>>>7, 61|t) ^ t; return ((t ^ t>>>14)>>>0)/4294967296; }; }
+const GATE_NAMES = ['North','East','South','West','Inner'];
+
+/* Level definition format:
+   map chars: S start, G goal, # tile, . void, 1-9 gate cell, a-z switch tile.
+   gates:{'1':{type:'bridge'|'barrier'}}  switches:{'a':{gate:'1',mode:'on'|'toggle'}} */
+function compile(def) {
+  const map = def.map, H = map.length, W = Math.max(...map.map(r => r.length));
+  const L = {W,H,stage:def.stage,name:def.name,hint:def.hint,grid:[],gates:[],gi:{},sw:{},start:null,goal:null,par:0};
+  Object.keys(def.gates||{}).sort().forEach((id,k) => {
+    const g = def.gates[id]; L.gi[id] = k;
+    L.gates.push({id, type:g.type, name:g.name || `${GATE_NAMES[k%5]} ${g.type==='bridge'?'Bridge':'Barrier'}`, cells:[], sw:[]});
+  });
+  map.forEach((row,j) => { L.grid[j] = [];
+    for (let i=0;i<W;i++) { const c = row[i] || '.'; L.grid[j][i] = c;
+      if (c==='S') L.start = {x:i,z:j,o:0};
+      if (c==='G') L.goal = {i,j};
+      if (c>='1' && c<='9') L.gates[L.gi[c]].cells.push([i,j]);
+      if (c>='a' && c<='z') { const sd = def.switches[c], gi = L.gi[sd.gate]; L.sw[i+','+j] = {gate:gi,mode:sd.mode,i,j}; L.gates[gi].sw.push([i,j]); } } });
+  return L;
+}
+// 0 = void, 1 = floor, 2 = closed barrier (blocks movement)
+function cellKind(L, i, j, mask) {
+  if (i<0 || j<0 || i>=L.W || j>=L.H) return 0;
+  const c = L.grid[j][i];
+  if (c==='.' || c===' ') return 0;
+  if (c>='1' && c<='9') { const gi = L.gi[c], open = (mask>>gi)&1; return L.gates[gi].type==='bridge' ? (open?1:0) : (open?1:2); }
+  return 1;
+}
+/* One move. Order: (1) closed barrier blocks the move, (2) switches under the landing footprint fire,
+   (3) any unsupported cell means falling, (4) upright on goal wins.
+   Safe rule: a switch never closes a gate the block is currently covering (the gate stays open). */
+function stepMove(L, s, mask, d) {
+  const ns = rolled(s, d), cs = cellsOf(ns);
+  if (cs.some(([i,j]) => cellKind(L,i,j,mask)===2)) return {r:'blocked',s:ns,mask,ev:[]};
+  let m = mask; const ev = [];
+  for (const [i,j] of cs) { const sw = L.sw[i+','+j]; if (!sw) continue;
+    const bit = 1<<sw.gate, open = m & bit;
+    if (sw.mode==='on') { if (!open) { m |= bit; ev.push([sw.gate,'open']); } }
+    else if (!open) { m |= bit; ev.push([sw.gate,'open']); }
+    else if (L.gates[sw.gate].cells.some(([a,b]) => cs.some(([c,e]) => c===a && e===b))) ev.push([sw.gate,'held']);
+    else { m &= ~bit; ev.push([sw.gate,'close']); } }
+  if (cs.some(([i,j]) => cellKind(L,i,j,m)===0)) return {r:'fall',s:ns,mask:m,ev};
+  if (ns.o===0 && ns.x===L.goal.i && ns.z===L.goal.j) return {r:'win',s:ns,mask:m,ev};
+  return {r:'ok',s:ns,mask:m,ev};
+}
+function solve(L) {                                      // BFS over (position, orientation, gate mask); returns fewest moves or -1
+  const key = (s,m) => ((((s.z+4)*64+(s.x+4))*3+s.o)<<4)|m;
+  const q = [[L.start,0,0]], seen = new Set([key(L.start,0)]);
+  for (let k=0;k<q.length;k++) { const [s,m,n] = q[k];
+    for (let d=0;d<4;d++) { const r = stepMove(L,s,m,d);
+      if (r.r==='blocked' || r.r==='fall') continue;
+      if (r.r==='win') return n+1;
+      const kk = key(r.s,r.mask); if (!seen.has(kk)) { seen.add(kk); q.push([r.s,r.mask,n+1]); } } }
+  return -1;
+}
+
+/* ===== Levels ===== */
+const HAND = [
+  { name:'First Steps', hint:'Roll with the arrow keys or WASD. Reach the dark hole.', map:['S####...','######..','.######G'] },
+  { name:'Standing Tall', hint:'Only an upright block drops into the hole. Lying flat will not count.',
+    map:['S###....','####....','.####...','..#####.','...####G'] },
+  { name:'Lying Down', hint:'Lying flat covers two tiles. Both need floor underneath.',
+    map:['S##.....','###.....','.####...','..#####.','...####.','.....##G'] },
+  { name:'The Gap', hint:'Empty space is the void. Plan your rolls around the holes.',
+    map:['S###.....','####.....','####.###.','.########','..####.##','...#...#G#'] },
+  { name:'First Bridge', hint:'Roll onto the round plate to raise the bridge sections.',
+    map:['S###.....','11##.....','##1#.1##.','.########','..####.1a','...#...#G#'],
+    gates:{'1':{type:'bridge',name:'Bridge A'}}, switches:{a:{gate:'1',mode:'on'}} }
+];
+
+/* ===== Procedural generator =====
+   1) Random-walk an actual block route (so a valid path exists by construction).
+   2) Turn some of the route's later tiles into gates; put the switch on an earlier tile.
+   3) Widen the path (less as stages rise) and add dead-end stubs.
+   4) Validate with the BFS solver; retry with a new sub-seed, then fall back to a template. */
+function genTry(stage, att) {
+  const rnd = mulberry32(stage*7919 + att*104729 + 12345), t = stage - 5;
+  const N = Math.min(46, Math.round(7 + t*.9)), BW = Math.min(14, 7 + (t>>1)), BH = Math.min(11, 6 + Math.floor(t/3));
+  let s = {x:(rnd()*2)|0, z:(rnd()*2)|0, o:0}; const start = {...s}, seen = new Map(), route = [s];
+  const add = (st,idx) => cellsOf(st).forEach(([i,j]) => { if (!seen.has(i+','+j)) seen.set(i+','+j,{i,j,idx}); });
+  add(s,0); let last = -1, steps = 0;
+  while (steps < N+8) {
+    if (steps>=N && s.o===0) break;
+    const opts = []; let tot = 0;
+    for (let d=0;d<4;d++) { if (last>=0 && d===(last^1)) continue;
+      const ns = rolled(s,d), cs = cellsOf(ns);
+      if (cs.some(([i,j]) => i<0||j<0||i>=BW||j>=BH)) continue;
+      const fresh = cs.some(([i,j]) => !seen.has(i+','+j));
+      const w = .35 + (fresh?2:0) + (d===0||d===2?1:0); opts.push([d,w,ns]); tot += w; }
+    if (!opts.length) return null;
+    let r = rnd()*tot, pick = opts[opts.length-1]; for (const o of opts) { r -= o[1]; if (r<=0) { pick = o; break; } }
+    last = pick[0]; s = pick[2]; steps++; route.push(s); add(s,steps);
+  }
+  if (s.o!==0) return null;
+  const sk = start.x+','+start.z, gk = s.x+','+s.z; if (sk===gk) return null;
+  const grid = Array.from({length:BH}, () => Array(BW).fill('.'));
+  seen.forEach(c => grid[c.j][c.i] = '#');
+  const ord = [...seen.values()].filter(c => (c.i+','+c.j)!==sk && (c.i+','+c.j)!==gk);
+  // gate plan by stage
+  const plan = stage<9 ? [] : stage<12 ? ['bridge'] : stage<16 ? ['barrier'] : stage<41 ? ['bridge','barrier'] : ['bridge','barrier','bridge'];
+  const gates = {}, switches = {}, used = new Set(); let ok = true;
+  plan.forEach((type,k) => { if (!ok) return;
+    const len = type==='bridge' ? 2 + (rnd()<.5?1:0) : 1 + (rnd()<.4?1:0);
+    const lo = Math.floor(ord.length*(.3 + .5*k/plan.length)), hi = ord.length - len - 2;
+    if (hi < lo || lo < 4) { ok = false; return; }
+    const a = lo + ((rnd()*(hi-lo+1))|0), cellsG = ord.slice(a, a+len);
+    if (cellsG.some(c => used.has(c.i+','+c.j))) { ok = false; return; }
+    const cands = ord.slice(1, a-1).filter(c => c.idx < cellsG[0].idx && !used.has(c.i+','+c.j));
+    if (!cands.length) { ok = false; return; }
+    const sc = cands[(rnd()*cands.length)|0], id = String(k+1), sl = 'abc'[k];
+    cellsG.forEach(c => { grid[c.j][c.i] = id; used.add(c.i+','+c.j); });
+    grid[sc.j][sc.i] = sl; used.add(sc.i+','+sc.j);
+    gates[id] = {type};
+    switches[sl] = {gate:id, mode: type==='barrier' ? (stage>=16?'toggle':'on') : (stage>=26 && rnd()<.3 ? 'toggle' : 'on')};
+  });
+  if (!ok) return null;
+  grid[start.z][start.x] = 'S'; grid[s.z][s.x] = 'G';
+  // widen + dead-end stubs (only add floor, never remove)
+  const p = Math.max(0, .7 - t*.045), put = (i,j) => { if (i>=0&&j>=0&&i<BW&&j<BH && grid[j][i]==='.') grid[j][i] = '#'; };
+  seen.forEach(c => DIRS.forEach(([dx,dz]) => { if (rnd() < p*.5) put(c.i+dx, c.j+dz); }));
+  const cellsArr = [...seen.values()];
+  for (let n=0;n<Math.min(6, Math.floor(t/3));n++) { const c = cellsArr[(rnd()*cellsArr.length)|0], [dx,dz] = DIRS[(rnd()*4)|0], len = 1 + ((rnd()*3)|0);
+    for (let k=1;k<=len;k++) put(c.i+dx*k, c.j+dz*k); }
+  // trim empty border rows/columns
+  let i0=99,i1=-1,j0=99,j1=-1; grid.forEach((r,j) => r.forEach((c,i) => { if (c!=='.') { i0=Math.min(i0,i); i1=Math.max(i1,i); j0=Math.min(j0,j); j1=Math.max(j1,j); } }));
+  const map = []; for (let j=j0;j<=j1;j++) map.push(grid[j].slice(i0,i1+1).join(''));
+  return {stage, name:`Stage ${stage}`, hint: plan.length ? 'Gates are active. Open the Gates panel to see their status.' : 'Narrow paths ahead. Mind the edges.', map, gates, switches};
+}
+const _cache = {};
+function getLevel(stage) {
+  if (_cache[stage]) return _cache[stage];
+  let L = null;
+  if (stage <= HAND.length) { L = compile({...HAND[stage-1], stage}); L.par = solve(L); }
+  else {
+    for (let att=0; att<60 && !L; att++) { const def = genTry(stage, att); if (!def) continue;
+      const c = compile(def), par = solve(c); if (par >= 4) { c.par = par; L = c; } }
+    if (!L) { L = compile({...HAND[3], stage, name:`Stage ${stage}`}); L.par = solve(L); }  // known-valid fallback template
+  }
+  return _cache[stage] = L;
+}
+
+
+/* ===== RENDERER, CAMERA, LIGHTS ===== */
+const $ = id => document.getElementById(id);
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);                 // the red void is the CSS gradient behind the transparent canvas
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(36, 1, .1, 200);
+scene.add(new THREE.HemisphereLight(0xfff0e6, 0x8a2a22, .8));
+const sun = new THREE.DirectionalLight(0xfff4e8, 1.05); sun.castShadow = true; sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera, {left:-18,right:18,top:18,bottom:-18,near:1,far:70}); sun.shadow.bias = -.0006; sun.shadow.radius = 3;
+scene.add(sun, sun.target);
+const stageG = new THREE.Group(), world = new THREE.Group(); scene.add(stageG); stageG.add(world);
+
+/* ===== PROCEDURAL MATERIALS ===== */
+function canvasTex(n, draw) { const c = document.createElement('canvas'); c.width = c.height = n; draw(c.getContext('2d'), n);
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t; }
+const tr = mulberry32(99);
+const stoneTex = canvasTex(128, (g,n) => {
+  g.fillStyle = '#ececee'; g.fillRect(0,0,n,n);
+  for (let i=0;i<3200;i++) { g.fillStyle = tr()<.5 ? 'rgba(90,90,100,.07)' : 'rgba(255,255,255,.14)'; g.fillRect(tr()*n, tr()*n, 1+tr()*2, 1+tr()*2); }
+  g.strokeStyle = 'rgba(80,80,90,.18)'; for (let i=0;i<7;i++) { g.beginPath(); const x = tr()*n, y = tr()*n; g.moveTo(x,y); g.lineTo(x+tr()*30-15, y+tr()*30-15); g.stroke(); }
+  g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(0,0,n,5); g.fillRect(0,0,5,n);          // chamfer light side
+  g.fillStyle = 'rgba(70,60,70,.5)'; g.fillRect(0,n-6,n,6); g.fillRect(n-6,0,6,n);       // chamfer shade side
+  g.strokeStyle = 'rgba(60,55,65,.35)'; g.lineWidth = 2; g.strokeRect(1,1,n-2,n-2); });
+const rustTex = canvasTex(128, (g,n) => {
+  g.fillStyle = '#6b3a2a'; g.fillRect(0,0,n,n);
+  const cols = ['#8e4c2a','#4a2218','#a85c30','#3a1a12','#7a4a38'];
+  for (let i=0;i<46;i++) { const x = tr()*n, y = tr()*n, r = 8+tr()*22, gr = g.createRadialGradient(x,y,0,x,y,r);
+    gr.addColorStop(0, cols[i%5]+'88'); gr.addColorStop(1, cols[i%5]+'00'); g.fillStyle = gr; g.fillRect(x-r,y-r,r*2,r*2); }
+  for (let i=0;i<1800;i++) { g.fillStyle = tr()<.5 ? 'rgba(20,8,4,.18)' : 'rgba(210,140,90,.16)'; g.fillRect(tr()*n, tr()*n, 1+tr()*2, 1+tr()*2); }
+  g.strokeStyle = 'rgba(190,140,105,.55)'; g.lineWidth = 7; g.strokeRect(0,0,n,n); });   // worn light edges
+const stripeTex = canvasTex(64, (g,n) => { g.fillStyle = '#e8892f'; g.fillRect(0,0,n,n); g.fillStyle = '#2a1410';
+  for (let i=-n;i<n*2;i+=24) { g.beginPath(); g.moveTo(i,0); g.lineTo(i+12,0); g.lineTo(i+12-n,n); g.lineTo(i-n,n); g.fill(); } });
+const sideMat = new THREE.MeshStandardMaterial({color:0x4c4448, roughness:.95});
+const matCache = {};
+const tileMats = c => matCache[c] || (matCache[c] = [sideMat,sideMat,new THREE.MeshStandardMaterial({map:stoneTex,color:c,roughness:.95}),sideMat,sideMat,sideMat]);
+const GREYS = [0xe2e2e6,0xd6d6db,0xcbcbd0,0xdcdad8,0xc4c4cc], COPPER = [0xff8c50,0xf07a40];
+const tileGeo = new THREE.BoxGeometry(.97,.34,.97);
+const blockMat = new THREE.MeshStandardMaterial({map:rustTex, roughness:.82, metalness:.25});
+const block = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), blockMat); block.castShadow = true;
+const pivot = new THREE.Group(); pivot.add(block); stageG.add(pivot);       // pivot sits on the ground edge during a roll
+const dark = new THREE.MeshBasicMaterial({color:0x080204}), iron = new THREE.MeshStandardMaterial({color:0x4a4446,roughness:.6,metalness:.5});
+const copperM = new THREE.MeshStandardMaterial({color:0xd9733c,roughness:.7,metalness:.2});
+const barrierM = new THREE.MeshStandardMaterial({map:stripeTex, roughness:.7});
+
+/* ===== GAME STATE ===== */
+let stage = 1, L, state, mask = 0, moves = 0, anim = null, mode = 'menu', gateObjs = [], gv = [], hl = null, goalRim = null, introT = 0;
+const camPos = new THREE.Vector3(), camOff = new THREE.Vector3(), centerV = new THREE.Vector3(); let follow = 0;
+const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2, clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+
+function buildStage(n) {
+  stage = n; L = getLevel(n); world.clear(); stageG.remove(...stageG.children.filter(c => c.userData.hl)); hl = null;
+  gateObjs = L.gates.map(() => ({cells:[]})); gv = L.gates.map(() => 0); mask = 0; state = {...L.start}; moves = 0; anim = null; goalRim = null;
+  const rng = mulberry32(n*31+5);
+  for (let j=0;j<L.H;j++) for (let i=0;i<L.W;i++) {
+    const c = L.grid[j][i]; if (c==='.') continue;
+    const g = new THREE.Group(); g.position.set(i+.5,0,j+.5); world.add(g);
+    const isGate = c>='1' && c<='9', gi = isGate ? L.gi[c] : -1, bridge = isGate && L.gates[gi].type==='bridge';
+    if (bridge) {                                            // three copper slats that slide in one after another
+      const planks = [-1,0,1].map(k => { const m = new THREE.Mesh(new THREE.BoxGeometry(.94,.3,.29), copperM); m.position.set(0,-.16,k*.33); m.receiveShadow = true; m.castShadow = true; g.add(m); return m; });
+      gateObjs[gi].cells.push({planks}); continue;
+    }
+    const orange = rng() < .13 && c==='#', col = orange ? COPPER[(rng()*2)|0] : GREYS[(rng()*5)|0];
+    const t = new THREE.Mesh(tileGeo, tileMats(col)); t.position.y = -.17; t.receiveShadow = true; g.add(t);
+    if (c==='G') {                                           // square hole with a glowing rim
+      const hole = new THREE.Mesh(new THREE.PlaneGeometry(.64,.64), dark); hole.rotation.x = -Math.PI/2; hole.position.y = .004; g.add(hole);
+      const sh = new THREE.Shape(); sh.moveTo(-.42,-.42); sh.lineTo(.42,-.42); sh.lineTo(.42,.42); sh.lineTo(-.42,.42);
+      const ho = new THREE.Path(); ho.moveTo(-.32,-.32); ho.lineTo(-.32,.32); ho.lineTo(.32,.32); ho.lineTo(.32,-.32); sh.holes.push(ho);
+      goalRim = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({color:0xffcf6a,transparent:true}));
+      goalRim.rotation.x = -Math.PI/2; goalRim.position.y = .008; g.add(goalRim);
+    }
+    if (c>='a' && c<='z') {                                  // round plate = opens once, cross plate = toggles
+      const sw = L.sw[i+','+j];
+      if (sw.mode==='on') { const p = new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.07,28), iron); p.position.y = .035; p.castShadow = true; g.add(p);
+        const r = new THREE.Mesh(new THREE.TorusGeometry(.3,.03,8,28), copperM); r.rotation.x = Math.PI/2; r.position.y = .07; g.add(r); }
+      else for (const a of [Math.PI/4, -Math.PI/4]) { const b = new THREE.Mesh(new THREE.BoxGeometry(.78,.07,.17), iron); b.rotation.y = a; b.position.y = .035; b.castShadow = true; g.add(b); }
+    }
+    if (isGate) {                                            // striped barrier block
+      const b = new THREE.Group(), m = new THREE.Mesh(new THREE.BoxGeometry(.88,.8,.88), barrierM); m.position.y = .4; m.castShadow = true; b.add(m); g.add(b);
+      gateObjs[gi].cells.push({barrier:b});
+    }
+  }
+  place(); fit(); applyGates(true); renderGates();
+  $('stg').textContent = n; $('mv').textContent = 0;
+  try { localStorage.setItem('voidblock_stage', Math.max(n, +localStorage.getItem('voidblock_stage')||1)); } catch(e) {}
+}
+function place() {                                           // snap the block mesh to the committed grid state
+  const [w,h,d] = DIM[state.o];
+  pivot.position.set(0,0,0); pivot.rotation.set(0,0,0); block.rotation.set(0,0,0);
+  block.scale.set(w,h,d); block.position.set(state.x+w/2, h/2, state.z+d/2);
+}
+function applyGates(snap) {
+  L.gates.forEach((g,k) => { const tgt = (mask>>k)&1; gv[k] = snap ? tgt : gv[k] + clamp(tgt-gv[k], -.06, .06) * (snap?1:1);
+    gateObjs[k].cells.forEach(o => {
+      if (o.planks) o.planks.forEach((p,q) => { const s = clamp(gv[k]*3-q, 0, 1); p.visible = s>.02; p.position.y = -.16 - (1-ease(s))*1.2; });
+      else { o.barrier.scale.y = 1 - .94*ease(gv[k]); o.barrier.visible = gv[k] < .98; } }); });
+}
+function fit() {                                             // frame the level; larger levels zoom in and follow the block
+  const R = Math.hypot(L.W, L.H)/2 + 1.5, vf = 36*Math.PI/180, hf = 2*Math.atan(Math.tan(vf/2)*cam.aspect);
+  let dist = R / Math.sin(Math.min(vf,hf)/2) * (R>7 ? .62 : .8); dist = Math.max(dist, 11);
+  follow = clamp((R-6)/7, 0, .75);
+  const az = 32*Math.PI/180, el = 50*Math.PI/180;
+  camOff.set(Math.sin(az)*Math.cos(el), Math.sin(el), Math.cos(az)*Math.cos(el)).multiplyScalar(dist);
+  centerV.set(L.W/2, 0, L.H/2);
+  sun.position.set(centerV.x-7, 16, centerV.z+9); sun.target.position.copy(centerV);
+}
+function resize() { renderer.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); if (L) fit(); }
+addEventListener('resize', resize);
+
+/* ===== MOVEMENT ===== */
+function tryMove(d) {
+  if (mode!=='play' || anim) return;                         // one move at a time, none during animation
+  const r = stepMove(L, state, mask, d);
+  if (r.r==='blocked') { anim = {k:'bump', t:0, dur:.22, d}; toast('BARRIER IN THE WAY'); return; }
+  const [w,,dd] = DIM[state.o], {x,z} = state;
+  const P = [[x+w,z+dd/2],[x,z+dd/2],[x+w/2,z+dd],[x+w/2,z]][d];       // ground edge we tip over
+  const c = block.position.clone();
+  pivot.position.set(P[0],0,P[1]); block.position.set(c.x-P[0], c.y, c.z-P[1]);
+  anim = {k:'roll', t:0, dur:.25, axis:d<2?'z':'x', ang:[-1,1,1,-1][d], d, res:r};
+}
+function endRoll() {
+  const r = anim.res, d = anim.d; anim = null; state = r.s; mask = r.mask; place();
+  moves++; $('mv').textContent = moves;
+  r.ev.forEach(([gi,e]) => { const g = L.gates[gi], nm = g.type==='bridge' ? 'BRIDGE' : 'BARRIER';
+    toast(e==='open' ? (g.type==='bridge' ? 'BRIDGE ACTIVATED' : 'BARRIER OPENED') : e==='close' ? nm+' CLOSED' : 'GATE HELD OPEN: BLOCK IS ON IT'); });
+  if (r.ev.length) renderGates();
+  if (r.r==='fall') anim = {k:'fall', t:0, dur:1.1, vy:0, d};
+  else if (r.r==='win') anim = {k:'win', t:0, dur:.75};
+}
+let toastT; function toast(s) { const e = $('toast'); e.textContent = s; e.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove('on'), 1700); }
+
+/* ===== GATES PANEL ===== */
+function renderGates() {
+  const box = $('gList'); box.innerHTML = '';
+  if (!L.gates.length) { box.innerHTML = '<p class="dim">No gates in this stage.</p>'; return; }
+  L.gates.forEach((g,k) => { const open = (mask>>k)&1, row = document.createElement('div'); row.className = 'grow';
+    row.innerHTML = `<div><b>${g.name}</b><br><span class="dim">${g.type==='bridge'?'▨ Bridge':'▥ Barrier'} · ${open?'OPEN':'CLOSED'}</span></div>`;
+    const b = document.createElement('button'); b.className = 'btn sm'; b.textContent = 'Locate'; b.onclick = () => locate(k); row.appendChild(b); box.appendChild(row); });
+}
+function locate(k) {                                         // pulse the gate's cells and its switches (inspect only, never changes state)
+  if (hl) hl.meshes.forEach(m => stageG.remove(m));
+  const cells = [...L.gates[k].cells, ...L.gates[k].sw], meshes = cells.map(([i,j]) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(.92,.92),
+    new THREE.MeshBasicMaterial({color:0xfff0a0,transparent:true,opacity:.5,depthWrite:false})); m.rotation.x = -Math.PI/2; m.position.set(i+.5,.05,j+.5); m.userData.hl = 1; stageG.add(m); return m; });
+  hl = {t:2.6, meshes}; toast(L.gates[k].name.toUpperCase()+' AND ITS SWITCH');
+}
+function togglePanel(force) { const p = $('gates'), show = force===undefined ? p.hidden : force; p.hidden = !show; $('bG').setAttribute('aria-expanded', show); if (show) renderGates(); }
+
+/* ===== LOOP ===== */
+function step(dt, now) {
+  if (L) { applyGates(false); if (goalRim) goalRim.material.opacity = .6 + .4*Math.sin(now/240);
+    if (hl) { hl.t -= dt; hl.meshes.forEach(m => m.material.opacity = Math.max(0, hl.t>0 ? .25 + .3*Math.sin(now/110) : 0)); if (hl.t<=0) { hl.meshes.forEach(m => stageG.remove(m)); hl = null; } } }
+  if (mode==='intro') { introT += dt/.8; const e = ease(Math.min(introT,1)); stageG.position.y = -(1-e)*9; if (introT>=1) { mode = 'play'; stageG.position.y = 0; } return; }
+  if (!anim) return;
+  anim.t += dt; const u = Math.min(anim.t/anim.dur, 1);
+  if (anim.k==='roll') { pivot.rotation[anim.axis] = anim.ang*Math.PI/2*ease(u); if (u>=1) endRoll(); }
+  else if (anim.k==='bump') { const [dx,dz] = DIRS[anim.d], o = Math.sin(u*Math.PI)*.14; pivot.position.set(dx*o,0,dz*o); if (u>=1) { anim = null; pivot.position.set(0,0,0); } }
+  else if (anim.k==='fall') { anim.vy -= 26*dt; pivot.position.y += anim.vy*dt; const [dx,dz] = DIRS[anim.d]; block.rotation.z -= dx*2.4*dt; block.rotation.x += dz*2.4*dt;
+    if (u>=1) { anim = null; mode = 'over'; $('ovFell').hidden = false; $('bRetry').focus(); } }
+  else if (anim.k==='win') { const e = ease(u), [w,h,d] = DIM[0]; pivot.position.y = -1.9*e; block.scale.set(w*(1-.35*e), h, d*(1-.35*e));
+    if (u>=1) { anim = null; mode = 'over'; showWin(); } }
+}
+function showWin() {
+  $('winP').textContent = `Stage ${stage} cleared in ${moves} moves. Fewest possible: ${L.par}.`;
+  $('ovWin').hidden = false; $('bNext').focus();
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min((now-last)/1000, .05); last = now;
+  if (mode!=='paused') step(dt, now);
+  if (L) { const [w,,d] = DIM[state.o], tgt = new THREE.Vector3(state.x+w/2, 0, state.z+d/2).lerp(centerV, 1-follow).add(camOff);
+    camPos.lerp(tgt, 1-Math.exp(-4*dt)); cam.position.copy(camPos); cam.lookAt(camPos.x-camOff.x, 0, camPos.z-camOff.z); }
+  renderer.render(scene, cam); requestAnimationFrame(frame);
+}
+
+/* ===== UI, PROGRESSION, INPUT ===== */
+const OVS = ['ovStart','ovFell','ovWin','ovPause'];
+function startStage(n) {                                     // also used for restart: rebuilds everything from level data
+  OVS.forEach(i => $(i).hidden = true); buildStage(n); camPos.copy(centerV).add(camOff); mode = 'intro'; introT = 0; stageG.position.y = -9;
+  $('bar').hidden = false; $('pad').classList.add('on');
+  const l = $('lbl'); l.innerHTML = `STAGE ${n}<small>${L.name}</small>`; l.classList.remove('go'); void l.offsetWidth; l.classList.add('go');
+  const tip = $('tip'); if (n<=5) { tip.textContent = L.hint; tip.classList.add('on'); clearTimeout(tip._t); tip._t = setTimeout(() => tip.classList.remove('on'), 8000); } else tip.classList.remove('on');
+}
+function restart() { if (mode!=='menu') startStage(stage); }
+function togglePause() {
+  if (mode==='play' || mode==='intro') { mode = mode==='play' ? 'paused' : mode; if (mode==='paused') { $('ovPause').hidden = false; $('bRes').focus(); } }
+  else if (mode==='paused') { mode = 'play'; $('ovPause').hidden = true; }
+}
+try { $('stIn').value = Math.max(1, +localStorage.getItem('voidblock_stage') || 1); } catch(e) {}
+$('bPlay').onclick = () => startStage(clamp(Math.floor(+$('stIn').value)||1, 1, 999));
+$('bRetry').onclick = restart; $('bR').onclick = restart; $('bRs').onclick = restart; $('bRep').onclick = restart;
+$('bS1').onclick = () => startStage(1); $('bNext').onclick = () => startStage(stage+1);
+$('bP').onclick = togglePause; $('bRes').onclick = togglePause;
+$('bG').onclick = () => togglePanel(); $('bGx').onclick = () => togglePanel(false);
+const KEYS = {ArrowRight:0,d:0,D:0,ArrowLeft:1,a:1,A:1,ArrowDown:2,s:2,S:2,ArrowUp:3,w:3,W:3};
+addEventListener('keydown', e => {
+  if (e.target.tagName==='INPUT') { if (e.key==='Enter') $('bPlay').click(); return; }
+  if (e.key in KEYS) { e.preventDefault(); tryMove(KEYS[e.key]); }
+  else if (e.key==='r' || e.key==='R') restart();
+  else if (e.key==='g' || e.key==='G') { if (mode!=='menu') togglePanel(); }
+  else if (e.key==='Escape') togglePause();
+});
+document.querySelectorAll('#pad button').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); tryMove(+b.dataset.d); }));
+
+resize(); L = getLevel(1); buildStage(1); camPos.copy(centerV).add(camOff);   // stage 1 shows behind the start screen
+requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
